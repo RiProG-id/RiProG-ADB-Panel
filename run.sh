@@ -25,7 +25,9 @@ fi
 parent=$(basename "$dir")
 tmp="/data/local/tmp"
 target="$tmp/$parent"
-pkill -f server
+pgrep -fl server | grep '\./' | while read pid cmd; do
+	kill "$pid"
+done
 rm -rf "$target"
 mkdir -p "$target"
 cp -r "$dir"/* "$target"/
