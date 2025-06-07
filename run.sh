@@ -10,11 +10,11 @@ if [ ! -f "$dir/server" ]; then
 	if [ "$arch" = "armeabi-v7a" ] || [ "$arch" = "armv8l" ]; then
 		echo "- Architecture $arch is supported."
 		echo "- Installation continues."
-		cp "$dir/source/arm" "$dir/server"
+		cp "$dir/arm" "$dir/server"
 	elif [ "$arch" = "arm64-v8a" ]; then
 		echo "- Architecture $arch is supported."
 		echo "- Installation continues."
-		cp "$dir/source/arm64" "$dir/server"
+		cp "$dir/arm64" "$dir/server"
 	else
 		echo "- Architecture $arch is not supported."
 		echo "- Installation aborted."
