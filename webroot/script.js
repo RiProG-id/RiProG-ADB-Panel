@@ -1,4 +1,4 @@
-import { exec } from "./RiProG.js";
+import { exec } from "/RiProG.js";
 
 const output = document.getElementById("output");
 

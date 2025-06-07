@@ -9,8 +9,7 @@ RiProG provides a JavaScript module 'RiProG.js' that allows you to run Android s
 
 ```
 // Import API
-// Import API
-import { exec } from "./RiProG.js";
+import { exec } from "/RiProG.js";
 
 // Execute a command
 const res = await exec("getprop ro.product.model");
