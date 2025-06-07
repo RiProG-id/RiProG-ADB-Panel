@@ -14,34 +14,35 @@ import { exec } from "./RiProG.js";
 // Execute a command
 const res = await exec("getprop ro.product.model");
 
-if (res.success) {
-  console.log("Output:", res.output.trim());
+if (res.exitCode === 0) {
+  console.log("Output:", res.stdOut.trim() || "(no output)");
 } else {
-  console.error("Error:", res.error || "Unknown error");
+  console.error(`Error (exit code ${res.exitCode}):`, res.stdErr.trim() || "Unknown error");
 }
 ```
 
 ## Response Format
 
+
 ```
-// General Stucture
 {
-  "success": true,
-  "output": "hasil stdout",
-  "error": "jika ada error stderr"
+  "exitCode": <integer>,   // the shell process exit code, 0 means success
+  "stdOut": "<string>",    // the standard output of the command
+  "stdErr": "<string>"     // the standard error output of the command, empty if none
 }
 
 // Success example
 {
-  "success": true,
-  "output": "Pixel 4\n"
+  "exitCode": 0,
+  "stdOut": "Pixel 4\n",
+  "stdErr": ""
 }
 
 // Failure example
 {
-  "success": false,
-  "output": "",
-  "error": "sh: something: not found"
+  "exitCode": 172,
+  "stdOut": "",
+  "stdErr": "sh: something: not found\n"
 }
 ```
 

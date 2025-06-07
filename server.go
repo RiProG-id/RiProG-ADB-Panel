@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"os/exec"
 	"strings"
+	"syscall"
 )
 
 type ExecRequest struct {
@@ -14,9 +16,9 @@ type ExecRequest struct {
 }
 
 type ExecResponse struct {
-	Success bool   `json:"success"`
-	Output  string `json:"output"`
-	Error   string `json:"error,omitempty"`
+	ExitCode int    `json:"exitCode"`
+	StdOut   string `json:"stdOut"`
+	StdErr   string `json:"stdErr"`
 }
 
 func execHandler(w http.ResponseWriter, r *http.Request) {
@@ -35,15 +37,26 @@ func execHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cmd := exec.Command("sh", "-c", req.Cmd)
-	out, err := cmd.CombinedOutput()
-	resp := ExecResponse{
-		Output: string(out),
-	}
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+	err = cmd.Run()
+	exitCode := 0
 	if err != nil {
-		resp.Success = false
-		resp.Error = err.Error()
-	} else {
-		resp.Success = true
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
+				exitCode = status.ExitStatus()
+			} else {
+				exitCode = -1
+			}
+		} else {
+			exitCode = -1
+		}
+	}
+	resp := ExecResponse{
+		ExitCode: exitCode,
+		StdOut:   stdoutBuf.String(),
+		StdErr:   stderrBuf.String(),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
@@ -69,7 +82,6 @@ type caseInsensitiveMux struct {
 
 func (c *caseInsensitiveMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	lowerPath := strings.ToLower(r.URL.Path)
-
 	switch lowerPath {
 	case "/riprog.js":
 		r.URL.Path = "/RiProG.js"
@@ -81,14 +93,13 @@ func (c *caseInsensitiveMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		execHandler(w, r)
 		return
 	default:
-		if strings.HasPrefix(lowerPath, "/riprog-exec") || strings.HasPrefix(lowerPath, "/riprog.js") {
-			if lowerPath == "/riprog-exec" {
-				execHandler(w, r)
-				return
-			} else if lowerPath == "/riprog.js" {
-				riprogJSHandler(w, r)
-				return
-			}
+		if strings.HasPrefix(lowerPath, "/riprog-exec") {
+			execHandler(w, r)
+			return
+		}
+		if strings.HasPrefix(lowerPath, "/riprog.js") {
+			riprogJSHandler(w, r)
+			return
 		}
 		c.fs.ServeHTTP(w, r)
 	}
@@ -97,7 +108,6 @@ func (c *caseInsensitiveMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func main() {
 	fs := http.FileServer(http.Dir("webroot"))
 	mux := &caseInsensitiveMux{fs: fs}
-
 	log.Println("Server running at http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
