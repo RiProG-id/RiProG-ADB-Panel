@@ -9,15 +9,16 @@ RiProG provides a JavaScript module 'RiProG.js' that allows you to run Android s
 
 ```
 // Import API
+// Import API
 import { exec } from "./RiProG.js";
 
 // Execute a command
 const res = await exec("getprop ro.product.model");
 
-if (res.exitCode === 0) {
-  console.log("Output:", res.stdOut.trim() || "(no output)");
+if (res.errno === 0) {
+  console.log("Output:", res.stdout.trim() || "(no output)");
 } else {
-  console.error(`Error (exit code ${res.exitCode}):`, res.stdErr.trim() || "Unknown error");
+  console.error(`Error (exit code ${res.errno}):`, res.stderr.trim() || "Unknown error");
 }
 ```
 
@@ -26,23 +27,23 @@ if (res.exitCode === 0) {
 
 ```
 {
-  "exitCode": <integer>,   // the shell process exit code, 0 means success
-  "stdOut": "<string>",    // the standard output of the command
-  "stdErr": "<string>"     // the standard error output of the command, empty if none
+  "errno": <integer>,       // the shell process exit code, 0 means success
+  "stdout": "<string>",     // the standard output of the command
+  "stderr": "<string>"      // the standard error output of the command, empty if none
 }
 
 // Success example
 {
-  "exitCode": 0,
-  "stdOut": "Pixel 4\n",
-  "stdErr": ""
+  "errno": 0,
+  "stdout": "Pixel 4\n",
+  "stderr": ""
 }
 
 // Failure example
 {
-  "exitCode": 172,
-  "stdOut": "",
-  "stdErr": "sh: something: not found\n"
+  "errno": 172,
+  "stdout": "",
+  "stderr": "sh: something: not found\n"
 }
 ```
 

@@ -15,10 +15,10 @@ type ExecRequest struct {
 	Cmd string `json:"cmd"`
 }
 
-type ExecResponse struct {
-	ExitCode int    `json:"exitCode"`
-	StdOut   string `json:"stdOut"`
-	StdErr   string `json:"stdErr"`
+type ExecResult struct {
+	ExitCode int    `json:"errno"`
+	StdOut   string `json:"stdout"`
+	StdErr   string `json:"stderr"`
 }
 
 func execHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,25 +26,29 @@ func execHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read body", http.StatusBadRequest)
 		return
 	}
+
 	var req ExecRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
+
 	cmd := exec.Command("sh", "-c", req.Cmd)
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 	err = cmd.Run()
+
 	exitCode := 0
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 				exitCode = status.ExitStatus()
 			} else {
 				exitCode = -1
@@ -53,11 +57,13 @@ func execHandler(w http.ResponseWriter, r *http.Request) {
 			exitCode = -1
 		}
 	}
-	resp := ExecResponse{
+
+	resp := ExecResult{
 		ExitCode: exitCode,
 		StdOut:   stdoutBuf.String(),
 		StdErr:   stderrBuf.String(),
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
@@ -68,7 +74,7 @@ func riprogJSHandler(w http.ResponseWriter, r *http.Request) {
 export async function exec(cmd) {
   const res = await fetch('/riprog-exec', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cmd })
   });
   return await res.json();
@@ -82,16 +88,12 @@ type caseInsensitiveMux struct {
 
 func (c *caseInsensitiveMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	lowerPath := strings.ToLower(r.URL.Path)
+
 	switch lowerPath {
 	case "/riprog.js":
-		r.URL.Path = "/RiProG.js"
-		r.Header.Set("Content-Type", "application/javascript")
 		riprogJSHandler(w, r)
-		return
 	case "/riprog-exec":
-		r.URL.Path = "/riprog-exec"
 		execHandler(w, r)
-		return
 	default:
 		if strings.HasPrefix(lowerPath, "/riprog-exec") {
 			execHandler(w, r)
