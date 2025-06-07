@@ -4,24 +4,25 @@ dir=$(
 	cd "$(dirname "$0")" || exit 1
 	pwd
 )
-if [ ! -f "$dir/server" ]; then
-	arch=$(getprop ro.product.cpu.abi)
-	echo "[INFO] Architecture: $arch"
-	if [ "$arch" = "armeabi-v7a" ] || [ "$arch" = "armv8l" ]; then
-		echo "- Architecture $arch is supported."
-		echo "- Installation continues."
-		cp "$dir/arm" "$dir/server"
-	elif [ "$arch" = "arm64-v8a" ]; then
-		echo "- Architecture $arch is supported."
-		echo "- Installation continues."
-		cp "$dir/arm64" "$dir/server"
-	else
-		echo "- Architecture $arch is not supported."
-		echo "- Installation aborted."
-		cd "$original_dir" || exit 1
-		exit 1
-	fi
+arch=$(getprop ro.product.cpu.abi)
+echo "[INFO] Architecture: $arch"
+if [ -z "$arch" ]; then
+	echo "[ERROR] Failed to detect architecture."
+	exit 1
 fi
+case "$arch" in
+armeabi-v7a | armv8l)
+	cp "$dir/arm" "$dir/server"
+	;;
+arm64-v8a)
+	cp "$dir/arm64" "$dir/server"
+	;;
+*)
+	echo "[ERROR] Architecture '$arch' is not supported."
+	cd "$original_dir" || exit 1
+	exit 1
+	;;
+esac
 parent=$(basename "$dir")
 tmp="/data/local/tmp"
 target="$tmp/$parent"
