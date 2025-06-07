@@ -14,7 +14,6 @@ dir=$(
 )
 
 arch=$(getprop ro.product.cpu.abi)
-echo "[INFO] Architecture: $arch"
 
 if [ -z "$arch" ]; then
 	echo "[ERROR] Failed to detect architecture."
