@@ -25,7 +25,7 @@ fi
 parent=$(basename "$dir")
 tmp="/data/local/tmp"
 target="$tmp/$parent"
-pkill -f "$tmp/.*/server"
+pkill -f server
 rm -rf "$target"
 mkdir -p "$target"
 cp -r "$dir"/* "$target"/
